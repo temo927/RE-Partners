@@ -42,7 +42,13 @@ The application is served through nginx reverse proxy:
 ## Development
 
 ```bash
-# Run tests
+# Run unit tests
+make test-unit
+
+# Run integration tests
+make test-integration
+
+# Run all tests (unit + integration)
 make test
 
 # View logs
@@ -54,7 +60,7 @@ make nginx-logs
 # Stop services
 make down
 
-# Clean everything
+# Clean everything (including volumes)
 make clean
 ```
 
