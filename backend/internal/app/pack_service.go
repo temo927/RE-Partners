@@ -1,11 +1,12 @@
 package app
 
 import (
-	"fmt"
+	"errors"
 	"log/slog"
 
 	"pack-calculator/internal/domain"
 	"pack-calculator/internal/ports"
+	pkgerrors "pack-calculator/pkg/errors"
 	"pack-calculator/pkg/logger"
 )
 
@@ -31,9 +32,13 @@ func (s *PackService) GetPackSizes() ([]int, error) {
 		return sizes, nil
 	}
 
+	if !errors.Is(err, pkgerrors.ErrNotFound) {
+		s.logger.Warn("Cache get failed, falling back to repository", "error", err, "key", cacheKey)
+	}
+
 	sizes, err = s.repo.GetAllActive()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get pack sizes from repository: %w", err)
+		return nil, pkgerrors.Wrap(err, "failed to get pack sizes from repository")
 	}
 
 	if err := s.cache.Set(cacheKey, sizes, 3600); err != nil {
@@ -44,8 +49,12 @@ func (s *PackService) GetPackSizes() ([]int, error) {
 }
 
 func (s *PackService) UpdatePackSizes(sizes []int) error {
+	if len(sizes) == 0 {
+		return pkgerrors.ErrPackSizesEmpty
+	}
+
 	if err := s.repo.Create(sizes); err != nil {
-		return fmt.Errorf("failed to create pack sizes: %w", err)
+		return pkgerrors.Wrap(err, "failed to create pack sizes")
 	}
 
 	// Invalidate cache by deleting the active key
@@ -59,9 +68,13 @@ func (s *PackService) UpdatePackSizes(sizes []int) error {
 }
 
 func (s *PackService) CalculatePacks(items int) ([]domain.Pack, error) {
+	if items <= 0 {
+		return nil, pkgerrors.ErrItemsInvalid
+	}
+
 	packSizes, err := s.GetPackSizes()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get pack sizes: %w", err)
+		return nil, pkgerrors.Wrap(err, "failed to get pack sizes")
 	}
 
 	calcService := NewCalculationService()
