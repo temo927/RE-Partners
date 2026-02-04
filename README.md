@@ -63,11 +63,3 @@ make down
 # Clean everything (including volumes)
 make clean
 ```
-
-## Deployment
-
-For droplet deployment:
-1. Clone repository
-2. Run `make up`
-3. Access via droplet IP on port 80
-4. For HTTPS, add SSL certificates and update nginx config
