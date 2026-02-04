@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"pack-calculator/internal/ports"
 	pkgerrors "pack-calculator/pkg/errors"
@@ -42,13 +44,33 @@ func (r *PostgresRepository) GetAllActive() ([]int, error) {
 		LIMIT 1
 	`
 
-	var sizes []int
-	err := r.db.QueryRowContext(ctx, query).Scan(&sizes)
+	var arrayStr string
+	err := r.db.QueryRowContext(ctx, query).Scan(&arrayStr)
 	if err == sql.ErrNoRows {
 		return []int{}, nil
 	}
 	if err != nil {
 		return nil, pkgerrors.WrapWithDomain(err, pkgerrors.ErrRepository, "failed to get active pack sizes")
+	}
+
+	// Parse PostgreSQL array format: {1,2,3} or {1, 2, 3}
+	arrayStr = strings.Trim(arrayStr, "{}")
+	if arrayStr == "" {
+		return []int{}, nil
+	}
+
+	parts := strings.Split(arrayStr, ",")
+	sizes := make([]int, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		val, err := strconv.Atoi(part)
+		if err != nil {
+			return nil, pkgerrors.WrapWithDomain(err, pkgerrors.ErrRepository, "failed to parse pack size")
+		}
+		sizes = append(sizes, val)
 	}
 
 	return sizes, nil
@@ -78,9 +100,17 @@ func (r *PostgresRepository) Create(sizes []int) error {
 
 	insertQuery := `
 		INSERT INTO pack_sizes (version, sizes, is_active) 
-		VALUES ($1, $2, true)
+		VALUES ($1, $2::integer[], true)
 	`
-	_, err = tx.ExecContext(ctx, insertQuery, maxVersion+1, sizes)
+	
+	// Format as PostgreSQL array: {1,2,3}
+	arrayParts := make([]string, len(sizes))
+	for i, size := range sizes {
+		arrayParts[i] = strconv.Itoa(size)
+	}
+	arrayStr := "{" + strings.Join(arrayParts, ",") + "}"
+	
+	_, err = tx.ExecContext(ctx, insertQuery, maxVersion+1, arrayStr)
 	if err != nil {
 		return pkgerrors.WrapWithDomain(err, pkgerrors.ErrRepository, "failed to insert new pack sizes")
 	}

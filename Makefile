@@ -1,4 +1,4 @@
-.PHONY: setup build up down test migrate-up migrate-down clean logs
+.PHONY: setup build up down test test-unit test-api test-manual migrate-up migrate-down clean logs
 
 setup:
 	@echo "Setting up project..."
@@ -22,9 +22,15 @@ down:
 	@echo "Stopping services..."
 	docker-compose down
 
-test:
-	@echo "Running backend tests..."
+test-unit:
+	@echo "Running backend unit tests..."
 	cd backend && go test ./... -v
+
+test-api:
+	@echo "Running API integration tests..."
+	@./test.sh
+
+test: test-unit test-api
 
 migrate-up:
 	@echo "Running migrations..."
@@ -50,3 +56,11 @@ nginx-logs:
 nginx-reload:
 	@echo "Reloading nginx..."
 	docker-compose exec nginx nginx -s reload
+
+test-manual:
+	@echo "Showing manual test commands..."
+	@./test_manual.sh
+
+test-api:
+	@echo "Running API integration tests..."
+	@./test.sh
