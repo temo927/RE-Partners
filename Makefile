@@ -26,11 +26,15 @@ test-unit:
 	@echo "Running backend unit tests..."
 	cd backend && go test ./... -v
 
+test-integration:
+	@echo "Running backend integration tests..."
+	cd backend && go test ./tests/... -tags=integration -v
+
 test-api:
 	@echo "Running API integration tests..."
-	@./test.sh
+	@./tests/test.sh
 
-test: test-unit test-api
+test: test-unit test-integration
 
 migrate-up:
 	@echo "Running migrations..."
@@ -59,8 +63,4 @@ nginx-reload:
 
 test-manual:
 	@echo "Showing manual test commands..."
-	@./test_manual.sh
-
-test-api:
-	@echo "Running API integration tests..."
-	@./test.sh
+	@./tests/test_manual.sh

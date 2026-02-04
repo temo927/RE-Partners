@@ -1,7 +1,7 @@
 //go:build integration
 // +build integration
 
-package http
+package tests
 
 import (
 	"bytes"
@@ -12,9 +12,38 @@ import (
 
 	"pack-calculator/internal/app"
 	"pack-calculator/internal/domain"
+	httptransport "pack-calculator/internal/transport/http"
+	pkgerrors "pack-calculator/pkg/errors"
 )
 
-func setupIntegrationTest(t *testing.T) (*Handler, func()) {
+type mockPackService struct {
+	getPackSizesFunc    func() ([]int, error)
+	updatePackSizesFunc func(sizes []int) error
+	calculatePacksFunc  func(items int) ([]domain.Pack, error)
+}
+
+func (m *mockPackService) GetPackSizes() ([]int, error) {
+	if m.getPackSizesFunc != nil {
+		return m.getPackSizesFunc()
+	}
+	return nil, nil
+}
+
+func (m *mockPackService) UpdatePackSizes(sizes []int) error {
+	if m.updatePackSizesFunc != nil {
+		return m.updatePackSizesFunc(sizes)
+	}
+	return nil
+}
+
+func (m *mockPackService) CalculatePacks(items int) ([]domain.Pack, error) {
+	if m.calculatePacksFunc != nil {
+		return m.calculatePacksFunc(items)
+	}
+	return nil, nil
+}
+
+func setupIntegrationTest(t *testing.T) (*httptransport.Handler, func()) {
 	if testing.Short() {
 		t.Skip("Skipping integration test")
 	}
@@ -29,13 +58,16 @@ func setupIntegrationTest(t *testing.T) (*Handler, func()) {
 			return nil
 		},
 		calculatePacksFunc: func(items int) ([]domain.Pack, error) {
+			if items <= 0 {
+				return nil, pkgerrors.ErrItemsInvalid
+			}
 			calcService := app.NewCalculationService()
 			packSizes := []int{250, 500, 1000, 2000, 5000}
 			return calcService.CalculatePacks(packSizes, items), nil
 		},
 	}
 
-	handler := NewHandler(mockService)
+	handler := httptransport.NewHandler(mockService)
 	cleanup := func() {}
 
 	return handler, cleanup
