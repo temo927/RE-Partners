@@ -1,4 +1,4 @@
-CREATE TABLE pack_sizes (
+CREATE TABLE IF NOT EXISTS pack_sizes (
     id SERIAL PRIMARY KEY,
     version INTEGER NOT NULL,
     sizes INTEGER[] NOT NULL,
@@ -6,5 +6,5 @@ CREATE TABLE pack_sizes (
     is_active BOOLEAN DEFAULT true
 );
 
-CREATE INDEX idx_pack_sizes_version ON pack_sizes(version DESC);
-CREATE INDEX idx_pack_sizes_active ON pack_sizes(is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_pack_sizes_version ON pack_sizes(version DESC);
+CREATE INDEX IF NOT EXISTS idx_pack_sizes_active ON pack_sizes(is_active) WHERE is_active = true;
