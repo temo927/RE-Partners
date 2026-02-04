@@ -1,1 +1,78 @@
 package cache
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"time"
+
+	"pack-calculator/internal/ports"
+
+	"github.com/redis/go-redis/v9"
+)
+
+type RedisCache struct {
+	client *redis.Client
+}
+
+func NewRedisCache(addr string, password string, db int) (*RedisCache, error) {
+	client := redis.NewClient(&redis.Options{
+		Addr:     addr,
+		Password: password,
+		DB:       db,
+	})
+
+	ctx := context.Background()
+	if err := client.Ping(ctx).Err(); err != nil {
+		return nil, fmt.Errorf("failed to ping redis: %w", err)
+	}
+
+	return &RedisCache{client: client}, nil
+}
+
+func (c *RedisCache) Close() error {
+	return c.client.Close()
+}
+
+func (c *RedisCache) Get(key string) ([]int, error) {
+	ctx := context.Background()
+	val, err := c.client.Get(ctx, key).Result()
+	if err == redis.Nil {
+		return nil, fmt.Errorf("key not found: %s", key)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get from cache: %w", err)
+	}
+
+	var sizes []int
+	if err := json.Unmarshal([]byte(val), &sizes); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal cache value: %w", err)
+	}
+
+	return sizes, nil
+}
+
+func (c *RedisCache) Set(key string, value []int, ttl int) error {
+	ctx := context.Background()
+	data, err := json.Marshal(value)
+	if err != nil {
+		return fmt.Errorf("failed to marshal cache value: %w", err)
+	}
+
+	if err := c.client.Set(ctx, key, data, time.Duration(ttl)*time.Second).Err(); err != nil {
+		return fmt.Errorf("failed to set cache: %w", err)
+	}
+
+	return nil
+}
+
+func (c *RedisCache) Delete(key string) error {
+	ctx := context.Background()
+	if err := c.client.Del(ctx, key).Err(); err != nil {
+		return fmt.Errorf("failed to delete from cache: %w", err)
+	}
+
+	return nil
+}
+
+var _ ports.Cache = (*RedisCache)(nil)
