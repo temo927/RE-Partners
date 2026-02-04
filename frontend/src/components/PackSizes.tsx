@@ -39,8 +39,8 @@ export default function PackSizes() {
 
     try {
       const packSizesArray = sizes
-        .map(size => parseInt(size.trim()))
-        .filter(size => !isNaN(size) && size > 0)
+        .map((size: string) => parseInt(size.trim()))
+        .filter((size: number) => !isNaN(size) && size > 0)
 
       if (packSizesArray.length === 0) {
         setMessage('Please enter at least one valid pack size')
@@ -64,14 +64,14 @@ export default function PackSizes() {
         <h2 className="pack-sizes-header">Pack Sizes</h2>
         <form onSubmit={handleSubmit}>
           <div className="pack-sizes-inputs">
-            {sizes.map((size, index) => (
+            {sizes.map((size: string, index: number) => (
               <input
                 key={index}
                 type="number"
                 className="pack-size-input"
                 placeholder={`Pack size ${index + 1}`}
                 value={size}
-                onChange={(e) => handleSizeChange(index, e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSizeChange(index, e.target.value)}
                 min="1"
               />
             ))}

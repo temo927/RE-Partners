@@ -42,3 +42,11 @@ clean:
 logs:
 	@echo "Showing logs..."
 	docker-compose logs -f
+
+nginx-logs:
+	@echo "Showing nginx logs..."
+	docker-compose logs -f nginx
+
+nginx-reload:
+	@echo "Reloading nginx..."
+	docker-compose exec nginx nginx -s reload

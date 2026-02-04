@@ -1,0 +1,7 @@
+*.test
+*.log
+.env
+.env.local
+api
+dist
+build
