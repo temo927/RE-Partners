@@ -13,24 +13,12 @@ func (s *CalculationService) CalculatePacks(packSizes []int, items int) []domain
 		return []domain.Pack{}
 	}
 
-	maxSize := 0
-	for _, size := range packSizes {
-		if size > maxSize {
-			maxSize = size
-		}
-	}
+	maxSize := maxSizeInSlice(packSizes)
 
 	// We search up to items + maxSize because we can only use whole packs.
 	// If exact match isn't possible, we may need to send more items than requested.
-	maxTarget := items + maxSize
-	minItems, minPacks := s.findOptimalSolution(packSizes, items, maxTarget)
-
-	if minItems == -1 {
-		return []domain.Pack{}
-	}
-
-	resultMap := s.reconstructSolution(packSizes, items, maxTarget, minItems, minPacks)
-	return s.mapToPacks(resultMap)
+	result := s.findOptimalCombination(packSizes, items, maxSize)
+	return s.mapToPacks(result)
 }
 
 func (s *CalculationService) mapToPacks(resultMap map[int]int) []domain.Pack {
@@ -44,27 +32,42 @@ func (s *CalculationService) mapToPacks(resultMap map[int]int) []domain.Pack {
 	return packs
 }
 
-type solution struct {
-	totalItems int
-	packCount  int
+type dpState struct {
+	totalItems  int
+	packCount   int
+	combination map[int]int
 }
 
 // 1. Minimizes total items sent (primary objective)
 // 2. Minimizes number of packs (secondary objective, when items are equal)
-func (s *CalculationService) findOptimalSolution(packSizes []int, items int, maxTarget int) (int, int) {
-	dp := make(map[int]solution)
-	dp[0] = solution{totalItems: 0, packCount: 0}
+func (s *CalculationService) findOptimalCombination(packSizes []int, items int, maxSize int) map[int]int {
+	maxTarget := items + maxSize
+
+	// For very large inputs, use optimized approach
+	if items > 100000 {
+		return s.findOptimalLargeInput(packSizes, items, maxSize)
+	}
+
+	dp := make(map[int]*dpState)
+	dp[0] = &dpState{totalItems: 0, packCount: 0, combination: make(map[int]int)}
 
 	for target := 1; target <= maxTarget; target++ {
-		best := solution{totalItems: maxTarget + 1, packCount: maxTarget + 1}
+		best := &dpState{totalItems: maxTarget + 1, packCount: maxTarget + 1, combination: nil}
 
 		for _, size := range packSizes {
 			if size <= target {
 				prev := target - size
-				if prevSol, exists := dp[prev]; exists {
-					candidate := solution{
-						totalItems: prevSol.totalItems + size,
-						packCount:  prevSol.packCount + 1,
+				if prevState, exists := dp[prev]; exists {
+					newCombination := make(map[int]int)
+					for k, v := range prevState.combination {
+						newCombination[k] = v
+					}
+					newCombination[size]++
+
+					candidate := &dpState{
+						totalItems:  prevState.totalItems + size,
+						packCount:   prevState.packCount + 1,
+						combination: newCombination,
 					}
 
 					if candidate.totalItems < best.totalItems ||
@@ -80,63 +83,109 @@ func (s *CalculationService) findOptimalSolution(packSizes []int, items int, max
 		}
 	}
 
-	minItems := maxTarget + 1
-	minPacks := maxTarget + 1
-
+	bestState := &dpState{totalItems: maxTarget + 1, packCount: maxTarget + 1, combination: nil}
 	for target := items; target <= maxTarget; target++ {
-		if sol, exists := dp[target]; exists {
-			if sol.totalItems < minItems ||
-				(sol.totalItems == minItems && sol.packCount < minPacks) {
-				minItems = sol.totalItems
-				minPacks = sol.packCount
+		if state, exists := dp[target]; exists {
+			if state.totalItems < bestState.totalItems ||
+				(state.totalItems == bestState.totalItems && state.packCount < bestState.packCount) {
+				bestState = state
 			}
 		}
 	}
 
-	if minItems > maxTarget {
-		return -1, -1
+	if bestState.combination == nil {
+		return make(map[int]int)
 	}
 
-	return minItems, minPacks
+	result := make(map[int]int)
+	for k, v := range bestState.combination {
+		result[k] = v
+	}
+	return result
 }
 
-func (s *CalculationService) reconstructSolution(packSizes []int, items int, maxTarget int, minItems int, minPacks int) map[int]int {
-	result := make(map[int]int)
+func (s *CalculationService) findOptimalLargeInput(packSizes []int, items int, maxSize int) map[int]int {
+	// Use BFS-like approach for large inputs
+	type state struct {
+		total     int
+		packCount int
+		combo     map[int]int
+	}
 
-	var backtrack func(target int, current map[int]int, totalItems int, packCount int) bool
-	backtrack = func(target int, current map[int]int, totalItems int, packCount int) bool {
-		if target >= items && totalItems == minItems && packCount == minPacks {
-			for k, v := range current {
-				result[k] = v
+	visited := make(map[int]*state)
+	queue := []*state{{total: 0, packCount: 0, combo: make(map[int]int)}}
+	visited[0] = queue[0]
+
+	bestState := &state{total: items + maxSize + 1, packCount: items + maxSize + 1, combo: nil}
+	maxTarget := items + maxSize
+
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+
+		if current.total >= items {
+			if current.total < bestState.total ||
+				(current.total == bestState.total && current.packCount < bestState.packCount) {
+				bestState = current
 			}
-			return true
 		}
 
-		if target > maxTarget || totalItems > minItems || packCount > minPacks {
-			return false
+		if current.total >= maxTarget {
+			continue
 		}
 
 		for _, size := range packSizes {
-			if size <= target {
-				current[size]++
-				if backtrack(target-size, current, totalItems+size, packCount+1) {
-					return true
+			nextTotal := current.total + size
+			if nextTotal > maxTarget {
+				continue
+			}
+
+			existing, exists := visited[nextTotal]
+			if !exists {
+				newCombo := make(map[int]int)
+				for k, v := range current.combo {
+					newCombo[k] = v
 				}
-				current[size]--
-				if current[size] == 0 {
-					delete(current, size)
+				newCombo[size]++
+
+				newState := &state{
+					total:     nextTotal,
+					packCount: current.packCount + 1,
+					combo:     newCombo,
+				}
+
+				visited[nextTotal] = newState
+				queue = append(queue, newState)
+			} else {
+				newPackCount := current.packCount + 1
+				if nextTotal < existing.total ||
+					(nextTotal == existing.total && newPackCount < existing.packCount) {
+					newCombo := make(map[int]int)
+					for k, v := range current.combo {
+						newCombo[k] = v
+					}
+					newCombo[size]++
+					existing.total = nextTotal
+					existing.packCount = newPackCount
+					existing.combo = newCombo
 				}
 			}
 		}
-
-		return false
 	}
 
-	for target := items; target <= maxTarget; target++ {
-		if backtrack(target, make(map[int]int), 0, 0) {
-			break
+	if bestState.combo == nil {
+		return make(map[int]int)
+	}
+
+	return bestState.combo
+}
+
+func maxSizeInSlice(packSizes []int) int {
+	max := 0
+	for _, size := range packSizes {
+		if size > max {
+			max = size
 		}
 	}
-
-	return result
+	return max
 }
