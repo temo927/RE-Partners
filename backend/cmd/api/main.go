@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,23 +14,29 @@ import (
 	"pack-calculator/internal/app"
 	"pack-calculator/internal/config"
 	httptransport "pack-calculator/internal/transport/http"
+	"pack-calculator/pkg/logger"
 )
 
 func main() {
+	log := logger.Default()
+
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("Failed to load configuration: %v", err)
+		log.Error("Failed to load configuration", "error", err)
+		os.Exit(1)
 	}
 
 	repo, err := repository.NewPostgresRepository(cfg.DB.DSN())
 	if err != nil {
-		log.Fatalf("Failed to initialize repository: %v", err)
+		log.Error("Failed to initialize repository", "error", err)
+		os.Exit(1)
 	}
 	defer repo.Close()
 
 	redisCache, err := cache.NewRedisCache(cfg.Redis.Addr(), cfg.Redis.Password, cfg.Redis.DB)
 	if err != nil {
-		log.Fatalf("Failed to initialize cache: %v", err)
+		log.Error("Failed to initialize cache", "error", err)
+		os.Exit(1)
 	}
 	defer redisCache.Close()
 
@@ -45,9 +50,10 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("Server starting on port %d", cfg.Server.Port)
+		log.Info("Server starting", "port", cfg.Server.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server failed: %v", err)
+			log.Error("Server failed", "error", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -55,14 +61,15 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("Shutting down server...")
+	log.Info("Shutting down server...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("Server forced to shutdown: %v", err)
+		log.Error("Server forced to shutdown", "error", err)
+		os.Exit(1)
 	}
 
-	log.Println("Server exited")
+	log.Info("Server exited")
 }

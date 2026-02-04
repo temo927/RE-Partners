@@ -2,20 +2,24 @@ package app
 
 import (
 	"fmt"
+	"log/slog"
 
 	"pack-calculator/internal/domain"
 	"pack-calculator/internal/ports"
+	"pack-calculator/pkg/logger"
 )
 
 type PackService struct {
-	repo  ports.PackSizeRepository
-	cache ports.Cache
+	repo   ports.PackSizeRepository
+	cache  ports.Cache
+	logger *slog.Logger
 }
 
 func NewPackService(repo ports.PackSizeRepository, cache ports.Cache) *PackService {
 	return &PackService{
-		repo:  repo,
-		cache: cache,
+		repo:   repo,
+		cache:  cache,
+		logger: logger.Default(),
 	}
 }
 
@@ -33,8 +37,7 @@ func (s *PackService) GetPackSizes() ([]int, error) {
 	}
 
 	if err := s.cache.Set(cacheKey, sizes, 3600); err != nil {
-		// Log cache error but don't fail the request
-		_ = err
+		s.logger.Warn("Failed to set cache", "error", err, "key", cacheKey)
 	}
 
 	return sizes, nil
@@ -49,8 +52,7 @@ func (s *PackService) UpdatePackSizes(sizes []int) error {
 	// New requests will fetch from DB and cache with new version
 	cacheKey := "pack-sizes:active"
 	if err := s.cache.Delete(cacheKey); err != nil {
-		// Log cache error but don't fail the request
-		_ = err
+		s.logger.Warn("Failed to delete cache", "error", err, "key", cacheKey)
 	}
 
 	return nil
