@@ -1,6 +1,10 @@
 package app
 
-import "pack-calculator/internal/domain"
+import (
+	"sort"
+
+	"pack-calculator/internal/domain"
+)
 
 type CalculationService struct{}
 
@@ -29,6 +33,12 @@ func (s *CalculationService) mapToPacks(resultMap map[int]int) []domain.Pack {
 			Quantity: quantity,
 		})
 	}
+	
+	// Sort by pack size in ascending order
+	sort.Slice(packs, func(i, j int) bool {
+		return packs[i].Size < packs[j].Size
+	})
+	
 	return packs
 }
 

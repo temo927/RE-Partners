@@ -3,7 +3,7 @@ import { getPackSizes, updatePackSizes } from '../services/api'
 import './PackSizes.css'
 
 export default function PackSizes() {
-  const [sizes, setSizes] = useState<string[]>(['', '', ''])
+  const [sizes, setSizes] = useState<string[]>(['23', '31', '53'])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string>('')
 
@@ -14,15 +14,14 @@ export default function PackSizes() {
   const loadPackSizes = async () => {
     try {
       const packSizes = await getPackSizes()
-      const newSizes = [...sizes]
-      packSizes.forEach((size, index) => {
-        if (index < 3) {
-          newSizes[index] = size.toString()
-        }
-      })
-      setSizes(newSizes)
+      if (packSizes.length > 0) {
+        setSizes(packSizes.map(size => size.toString()))
+      } else {
+        setSizes(['23', '31', '53'])
+      }
     } catch (error) {
       console.error('Failed to load pack sizes:', error)
+      setSizes(['23', '31', '53'])
     }
   }
 
@@ -30,6 +29,17 @@ export default function PackSizes() {
     const newSizes = [...sizes]
     newSizes[index] = value
     setSizes(newSizes)
+  }
+
+  const handleAddSize = () => {
+    setSizes([...sizes, ''])
+  }
+
+  const handleRemoveSize = (index: number) => {
+    if (sizes.length > 1) {
+      const newSizes = sizes.filter((_, i) => i !== index)
+      setSizes(newSizes)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,17 +75,35 @@ export default function PackSizes() {
         <form onSubmit={handleSubmit}>
           <div className="pack-sizes-inputs">
             {sizes.map((size: string, index: number) => (
-              <input
-                key={index}
-                type="number"
-                className="pack-size-input"
-                placeholder={`Pack size ${index + 1}`}
-                value={size}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSizeChange(index, e.target.value)}
-                min="1"
-              />
+              <div key={index} className="pack-size-input-wrapper">
+                <input
+                  type="number"
+                  className="pack-size-input"
+                  placeholder={`Pack size ${index + 1}`}
+                  value={size}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSizeChange(index, e.target.value)}
+                  min="1"
+                />
+                {sizes.length > 1 && (
+                  <button
+                    type="button"
+                    className="remove-button"
+                    onClick={() => handleRemoveSize(index)}
+                    aria-label="Remove pack size"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
             ))}
           </div>
+          <button
+            type="button"
+            className="add-button"
+            onClick={handleAddSize}
+          >
+            + Add Pack Size
+          </button>
           {message && (
             <div className={`message ${message.includes('success') ? 'success' : 'error'}`}>
               {message}

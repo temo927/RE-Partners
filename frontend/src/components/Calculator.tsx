@@ -8,7 +8,7 @@ interface Pack {
 }
 
 export default function Calculator() {
-  const [items, setItems] = useState<string>('263')
+  const [items, setItems] = useState<string>('500000')
   const [packs, setPacks] = useState<Pack[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
@@ -17,6 +17,7 @@ export default function Calculator() {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setPacks([])
 
     try {
       const itemsNum = parseInt(items.trim())
@@ -28,6 +29,7 @@ export default function Calculator() {
 
       const result = await calculatePacks(itemsNum)
       setPacks(result)
+      setError('')
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to calculate packs')
       setPacks([])

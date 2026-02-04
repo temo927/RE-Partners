@@ -23,8 +23,52 @@
   margin-bottom: 20px;
 }
 
-.pack-size-input {
+.pack-size-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.remove-button {
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.remove-button:hover {
+  background: #c82333;
+}
+
+.add-button {
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-bottom: 15px;
+  transition: background 0.2s;
   width: 100%;
+}
+
+.add-button:hover {
+  background: #218838;
+}
+
+.pack-size-input {
+  flex: 1;
   padding: 10px;
   border: 1px solid black;
   border-radius: 4px;
