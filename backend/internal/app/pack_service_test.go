@@ -289,6 +289,17 @@ func TestPackService_CalculatePacks(t *testing.T) {
 			want:    nil,
 			wantErr: true,
 		},
+		{
+			name: "items out of range (too large)",
+			cache: &mockCache{
+				getFunc: func(key string) ([]int, error) {
+					return []int{250, 500}, nil
+				},
+			},
+			items:   2147483648,
+			want:    nil,
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -304,6 +315,72 @@ func TestPackService_CalculatePacks(t *testing.T) {
 
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("CalculatePacks() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestPackService_UpdatePackSizes_Validation(t *testing.T) {
+	tests := []struct {
+		name    string
+		sizes   []int
+		wantErr bool
+	}{
+		{
+			name:    "empty sizes",
+			sizes:   []int{},
+			wantErr: true,
+		},
+		{
+			name:    "pack size too large",
+			sizes:   []int{250, 500, 2147483648},
+			wantErr: true,
+		},
+		{
+			name:    "pack size negative",
+			sizes:   []int{250, -100},
+			wantErr: true,
+		},
+		{
+			name:    "pack size zero",
+			sizes:   []int{250, 0},
+			wantErr: true,
+		},
+		{
+			name:    "duplicate pack sizes",
+			sizes:   []int{250, 500, 250},
+			wantErr: true,
+		},
+		{
+			name:    "valid sizes at max boundary",
+			sizes:   []int{250, 500, 2147483647},
+			wantErr: false,
+		},
+		{
+			name:    "valid sizes",
+			sizes:   []int{250, 500, 1000},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := &mockRepository{
+				createFunc: func(sizes []int) error {
+					return nil
+				},
+			}
+			cache := &mockCache{
+				deleteFunc: func(key string) error {
+					return nil
+				},
+			}
+			calcService := NewCalculationService()
+			service := NewPackService(repo, cache, calcService)
+			err := service.UpdatePackSizes(tt.sizes)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("UpdatePackSizes() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

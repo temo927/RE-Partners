@@ -5,13 +5,23 @@ import (
 	"fmt"
 )
 
+const (
+	MaxPackSize = 2147483647
+	MaxItems    = 2147483647
+	MinPackSize = 1
+	MinItems    = 1
+)
+
 var (
-	ErrNotFound         = errors.New("resource not found")
-	ErrInvalidInput     = errors.New("invalid input")
-	ErrRepository       = errors.New("repository error")
-	ErrCache            = errors.New("cache error")
-	ErrPackSizesEmpty   = errors.New("pack sizes cannot be empty")
-	ErrItemsInvalid     = errors.New("items must be greater than 0")
+	ErrNotFound            = errors.New("resource not found")
+	ErrInvalidInput        = errors.New("invalid input")
+	ErrRepository          = errors.New("repository error")
+	ErrCache               = errors.New("cache error")
+	ErrPackSizesEmpty      = errors.New("pack sizes cannot be empty")
+	ErrItemsInvalid        = errors.New("items must be greater than 0")
+	ErrPackSizeOutOfRange  = errors.New("pack size is out of range (must be between 1 and 2147483647)")
+	ErrItemsOutOfRange     = errors.New("items value is out of range (must be between 1 and 2147483647)")
+	ErrDuplicatePackSizes  = errors.New("duplicate pack sizes are not allowed")
 )
 
 type DomainError struct {

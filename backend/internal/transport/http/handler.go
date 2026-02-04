@@ -90,7 +90,7 @@ func (h *Handler) handleError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, pkgerrors.ErrNotFound):
 		status = http.StatusNotFound
-	case errors.Is(err, pkgerrors.ErrInvalidInput) || errors.Is(err, pkgerrors.ErrPackSizesEmpty) || errors.Is(err, pkgerrors.ErrItemsInvalid):
+	case errors.Is(err, pkgerrors.ErrInvalidInput) || errors.Is(err, pkgerrors.ErrPackSizesEmpty) || errors.Is(err, pkgerrors.ErrItemsInvalid) || errors.Is(err, pkgerrors.ErrPackSizeOutOfRange) || errors.Is(err, pkgerrors.ErrItemsOutOfRange) || errors.Is(err, pkgerrors.ErrDuplicatePackSizes):
 		status = http.StatusBadRequest
 	case errors.Is(err, pkgerrors.ErrRepository) || errors.Is(err, pkgerrors.ErrCache):
 		status = http.StatusInternalServerError

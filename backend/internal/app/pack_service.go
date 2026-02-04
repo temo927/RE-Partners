@@ -61,6 +61,17 @@ func (s *PackService) UpdatePackSizes(sizes []int) error {
 		return pkgerrors.ErrPackSizesEmpty
 	}
 
+	seen := make(map[int]bool)
+	for _, size := range sizes {
+		if size < pkgerrors.MinPackSize || size > pkgerrors.MaxPackSize {
+			return pkgerrors.ErrPackSizeOutOfRange
+		}
+		if seen[size] {
+			return pkgerrors.ErrDuplicatePackSizes
+		}
+		seen[size] = true
+	}
+
 	if err := s.repo.Create(sizes); err != nil {
 		return pkgerrors.Wrap(err, "failed to create pack sizes")
 	}
@@ -76,8 +87,8 @@ func (s *PackService) UpdatePackSizes(sizes []int) error {
 }
 
 func (s *PackService) CalculatePacks(items int) ([]domain.Pack, error) {
-	if items <= 0 {
-		return nil, pkgerrors.ErrItemsInvalid
+	if items < pkgerrors.MinItems || items > pkgerrors.MaxItems {
+		return nil, pkgerrors.ErrItemsOutOfRange
 	}
 
 	packSizes, err := s.GetPackSizes()

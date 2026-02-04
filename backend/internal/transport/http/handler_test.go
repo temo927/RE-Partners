@@ -122,6 +122,30 @@ func TestHandler_UpdatePackSizes(t *testing.T) {
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
+			name: "pack size out of range",
+			body: map[string]interface{}{
+				"sizes": []int{250, 2147483648},
+			},
+			mockService: &mockPackService{
+				updatePackSizesFunc: func(sizes []int) error {
+					return pkgerrors.ErrPackSizeOutOfRange
+				},
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "duplicate pack sizes",
+			body: map[string]interface{}{
+				"sizes": []int{250, 500, 250},
+			},
+			mockService: &mockPackService{
+				updatePackSizesFunc: func(sizes []int) error {
+					return pkgerrors.ErrDuplicatePackSizes
+				},
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
 			name: "invalid JSON",
 			body: "invalid",
 			mockService: &mockPackService{},
@@ -188,6 +212,18 @@ func TestHandler_CalculatePacks(t *testing.T) {
 			mockService: &mockPackService{
 				calculatePacksFunc: func(items int) ([]domain.Pack, error) {
 					return nil, pkgerrors.ErrItemsInvalid
+				},
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "items out of range",
+			body: map[string]interface{}{
+				"items": 2147483648,
+			},
+			mockService: &mockPackService{
+				calculatePacksFunc: func(items int) ([]domain.Pack, error) {
+					return nil, pkgerrors.ErrItemsOutOfRange
 				},
 			},
 			expectedStatus: http.StatusBadRequest,
@@ -274,6 +310,21 @@ func TestHandler_handleError(t *testing.T) {
 		{
 			name:           "items invalid",
 			err:            pkgerrors.ErrItemsInvalid,
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "pack size out of range",
+			err:            pkgerrors.ErrPackSizeOutOfRange,
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "items out of range",
+			err:            pkgerrors.ErrItemsOutOfRange,
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "duplicate pack sizes",
+			err:            pkgerrors.ErrDuplicatePackSizes,
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
