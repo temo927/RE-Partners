@@ -40,7 +40,8 @@ func main() {
 	}
 	defer redisCache.Close()
 
-	packService := app.NewPackService(repo, redisCache)
+	calculationService := app.NewCalculationService()
+	packService := app.NewPackService(repo, redisCache, calculationService)
 	handler := httptransport.NewHandler(packService)
 	router := httptransport.SetupRoutes(handler)
 

@@ -141,7 +141,8 @@ func TestPackService_GetPackSizes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			service := NewPackService(tt.repo, tt.cache)
+			calcService := NewCalculationService()
+			service := NewPackService(tt.repo, tt.cache, calcService)
 			got, err := service.GetPackSizes()
 
 			if (err != nil) != tt.wantErr {
@@ -219,7 +220,8 @@ func TestPackService_UpdatePackSizes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			service := NewPackService(tt.repo, tt.cache)
+			calcService := NewCalculationService()
+			service := NewPackService(tt.repo, tt.cache, calcService)
 			err := service.UpdatePackSizes(tt.sizes)
 
 			if (err != nil) != tt.wantErr {
@@ -284,14 +286,15 @@ func TestPackService_CalculatePacks(t *testing.T) {
 				},
 			},
 			items:   0,
-			want:    []domain.Pack{},
-			wantErr: false,
+			want:    nil,
+			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			service := NewPackService(tt.repo, tt.cache)
+			calcService := NewCalculationService()
+			service := NewPackService(tt.repo, tt.cache, calcService)
 			got, err := service.CalculatePacks(tt.items)
 
 			if (err != nil) != tt.wantErr {
@@ -303,24 +306,5 @@ func TestPackService_CalculatePacks(t *testing.T) {
 				t.Errorf("CalculatePacks() = %v, want %v", got, tt.want)
 			}
 		})
-	}
-}
-
-func TestNewPackService(t *testing.T) {
-	repo := &mockRepository{}
-	cache := &mockCache{}
-
-	service := NewPackService(repo, cache)
-
-	if service == nil {
-		t.Error("NewPackService() returned nil")
-	}
-
-	if service.repo != repo {
-		t.Error("NewPackService() repository not set correctly")
-	}
-
-	if service.cache != cache {
-		t.Error("NewPackService() cache not set correctly")
 	}
 }

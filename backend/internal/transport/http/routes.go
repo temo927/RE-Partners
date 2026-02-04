@@ -15,6 +15,8 @@ func SetupRoutes(handler *Handler) http.Handler {
 	r.Use(CORS)
 	r.Use(RateLimit)
 
+	r.Get("/health", handler.Health)
+
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/pack-sizes", handler.GetPackSizes)
 		r.Post("/pack-sizes", handler.UpdatePackSizes)

@@ -10,17 +10,25 @@ import (
 	"pack-calculator/pkg/logger"
 )
 
-type PackService struct {
-	repo   ports.PackSizeRepository
-	cache  ports.Cache
-	logger *slog.Logger
+type PackServiceInterface interface {
+	GetPackSizes() ([]int, error)
+	UpdatePackSizes(sizes []int) error
+	CalculatePacks(items int) ([]domain.Pack, error)
 }
 
-func NewPackService(repo ports.PackSizeRepository, cache ports.Cache) *PackService {
+type PackService struct {
+	repo           ports.PackSizeRepository
+	cache          ports.Cache
+	calculationSvc *CalculationService
+	logger         *slog.Logger
+}
+
+func NewPackService(repo ports.PackSizeRepository, cache ports.Cache, calculationSvc *CalculationService) *PackService {
 	return &PackService{
-		repo:   repo,
-		cache:  cache,
-		logger: logger.Default(),
+		repo:           repo,
+		cache:          cache,
+		calculationSvc: calculationSvc,
+		logger:         logger.Default(),
 	}
 }
 
@@ -77,6 +85,5 @@ func (s *PackService) CalculatePacks(items int) ([]domain.Pack, error) {
 		return nil, pkgerrors.Wrap(err, "failed to get pack sizes")
 	}
 
-	calcService := NewCalculationService()
-	return calcService.CalculatePacks(packSizes, items), nil
+	return s.calculationSvc.CalculatePacks(packSizes, items), nil
 }

@@ -12,10 +12,10 @@ import (
 )
 
 type Handler struct {
-	packService *app.PackService
+	packService app.PackServiceInterface
 }
 
-func NewHandler(packService *app.PackService) *Handler {
+func NewHandler(packService app.PackServiceInterface) *Handler {
 	return &Handler{
 		packService: packService,
 	}
@@ -99,6 +99,12 @@ func (h *Handler) handleError(w http.ResponseWriter, err error) {
 	}
 
 	h.writeError(w, status, err)
+}
+
+func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
 func (h *Handler) writeError(w http.ResponseWriter, status int, err error) {
